@@ -10,7 +10,6 @@ from typing import Optional, List
 import async_timeout
 import homeassistant.helpers.config_validation as cv
 import requests
-import voluptuous as vol
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigType
@@ -27,6 +26,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
+import voluptuous as vol
 
 from custom_components.librephotos.const.const import (
     DOMAIN,
