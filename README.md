@@ -14,7 +14,7 @@ Create a sensor entry in your `configuration.yaml` with these configuration valu
 - `username`: string, username to login to LibrePhotos *(required)*
 - `password`: string, password for user *(required)*
 - `port`: int, port of LibrePhotos instance *(optional, default=3000)*
-- `refresh_interval`: int, seconds between each update *(optional, default=60)*
+- `scan_interval`: int, seconds between each update *(optional, default=60)*
 
 #### Sample entry:
 ```Configuration.yaml:
@@ -24,5 +24,5 @@ Create a sensor entry in your `configuration.yaml` with these configuration valu
       username: "admin"
       password: "verysecurepassword"
       port: 3001
-      refresh_interval: 5
+      scan_interval: 5
 ```

@@ -2,6 +2,8 @@
 Converts Octet String values to plain string
 """
 from __future__ import annotations
+
+import asyncio
 import time
 
 import logging
@@ -14,16 +16,18 @@ import requests
 import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_PORT,
+    CONF_SCAN_INTERVAL,
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.discovery import async_load_platform
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers.entity_component import DEFAULT_SCAN_INTERVAL
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
@@ -34,8 +38,9 @@ from custom_components.librephotos.const.const import (
     QUERY_ACCESS_TOKEN,
     QUERY_WORKERS,
     ATTR_WORKERS,
-    CONFIG_REFRESH_INTERVAL,
     DOMAIN,
+    DATA_API,
+    DATA_COORDINATOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,66 +51,53 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Optional(CONF_PORT, default=3000): cv.positive_int,
-        vol.Optional(CONFIG_REFRESH_INTERVAL, default=60): cv.positive_int,
     }
 )
+PLATFORMS = ["sensor"]
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigEntry):
+    """Setup component"""
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Setup platform"""
-    _LOGGER.debug("Setting up sensor")
+    _LOGGER.debug(f"Setting up platform entry: {entry.data}")
 
-    conf = config[DOMAIN]
-    host = conf[CONF_HOST]
-    username = conf[CONF_USERNAME]
-    password = conf[CONF_PASSWORD]
-    port = conf[CONF_PORT]
-    refresh_interval = conf[CONFIG_REFRESH_INTERVAL]
+    host = entry.data[CONF_HOST]
+    username = entry.data[CONF_USERNAME]
+    password = entry.data[CONF_PASSWORD]
+    port = entry.data[CONF_PORT]
 
     api = LibrePhotosApi(host, port, username, password)
 
-    async def async_update_data():
-        """Async method to update LibrePhotos API data"""
-        try:
-            async with async_timeout.timeout(10):
-                workers = await hass.async_add_executor_job(api.get_workers)
-                return {
-                    "workers": {
-                        "state": len(workers),
-                        "attributes": {
-                            ATTR_WORKERS: [
-                                {
-                                    "queued_by": worker.queued_by,
-                                    "queued_at": worker.queued_at,
-                                    "started_at": worker.started_at,
-                                    "finished_at": worker.finished_at,
-                                    "is_started": worker.is_started,
-                                    "is_finished": worker.is_finished,
-                                    "is_failed": worker.is_failed,
-                                    "progress_current": worker.progress_current,
-                                    "progress_target": worker.progress_target,
-                                }
-                                for worker in workers
-                            ]
-                        },
-                    }
-                }
-        except ValueError as e:
-            raise ConfigEntryAuthFailed from e
+    librephotos_hass_data = hass.data.setdefault(DOMAIN, {})
+    librephotos_hass_data[DOMAIN][entry.entry_id] = api
 
-    coordinator = DataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name=DOMAIN,
-        update_method=async_update_data,
-        update_interval=timedelta(seconds=refresh_interval),
-    )
+    for component in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, component)
+        )
 
-    await coordinator.async_refresh()
-
-    hass.data[DOMAIN] = {"conf": conf, "coordinator": coordinator}
-    hass.async_create_task(async_load_platform(hass, "sensor", DOMAIN, {}, conf))
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Unload a config entry"""
+    unload_ok = all(
+        await asyncio.gather(
+            *[
+                hass.config_entries.async_forward_entry_unload(entry, component)
+                for component in PLATFORMS
+            ]
+        )
+    )
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+        if not hass.data[DOMAIN]:
+            hass.data.pop(DOMAIN)
+    return unload_ok
 
 
 Worker = namedtuple(
