@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections import namedtuple
 from datetime import datetime
-import time
 from typing import Optional, List
 
 import async_timeout
+import homeassistant.helpers.config_validation as cv
 import requests
+import voluptuous as vol
+from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigType
 from homeassistant.const import (
@@ -17,8 +20,6 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_HOST,
 )
-import voluptuous as vol
-from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.entity_component import DEFAULT_SCAN_INTERVAL
@@ -29,13 +30,15 @@ from homeassistant.helpers.update_coordinator import (
 
 from custom_components.librephotos.const.const import (
     DOMAIN,
-    ATTR_WORKERS,
+    KEY_ATTR_WORKERS,
     QUERY_ACCESS_TOKEN,
     MAX_WORKERS_COUNT,
     QUERY_WORKERS,
     STRPTIME_FORMAT,
+    KEY_SENSOR_WORKERS,
+    KEY_STATE,
+    KEY_ATTRS,
 )
-import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,23 +71,10 @@ async def async_setup_platform(
             async with async_timeout.timeout(10):
                 workers = await hass.async_add_executor_job(api.get_workers)
                 return {
-                    "workers": {
-                        "state": len(workers),
-                        "attributes": {
-                            ATTR_WORKERS: [
-                                {
-                                    "queued_by": worker.queued_by,
-                                    "queued_at": worker.queued_at,
-                                    "started_at": worker.started_at,
-                                    "finished_at": worker.finished_at,
-                                    "is_started": worker.is_started,
-                                    "is_finished": worker.is_finished,
-                                    "is_failed": worker.is_failed,
-                                    "progress_current": worker.progress_current,
-                                    "progress_target": worker.progress_target,
-                                }
-                                for worker in workers
-                            ]
+                    KEY_SENSOR_WORKERS: {
+                        KEY_STATE: len(workers),
+                        KEY_ATTRS: {
+                            KEY_ATTR_WORKERS: [worker._asdict() for worker in workers]
                         },
                     }
                 }
@@ -118,12 +108,12 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def entity_id(self):
-        return f"sensor.{DOMAIN}"
+        return f"sensor.{DOMAIN}_workers"
 
     @property
     def state(self):
-        self.attrs["some_attr"] = self.coordinator.data
-        return len(self.coordinator.data.values())
+        self.attrs = self.coordinator.data[KEY_SENSOR_WORKERS][KEY_ATTRS]
+        return self.coordinator.data[KEY_SENSOR_WORKERS][KEY_STATE]
 
     @property
     def device_state_attributes(self):
@@ -133,6 +123,8 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
 Worker = namedtuple(
     "Worker",
     [
+        "id",
+        "job_type",
         "queued_by",
         "queued_at",
         "started_at",
@@ -198,6 +190,8 @@ class LibrePhotosApi(object):
             is_failed = bool(worker["failed"])
             workers.append(
                 Worker(
+                    id=worker["job_id"],
+                    job_type=worker["job_type_str"],
                     queued_by=worker["started_by"]["username"],
                     queued_at=datetime.strptime(worker["queued_at"], STRPTIME_FORMAT),
                     started_at=datetime.strptime(worker["started_at"], STRPTIME_FORMAT)

@@ -1,7 +1,10 @@
 """Constant definitions"""
 DOMAIN = "librephotos"
 
-ATTR_WORKERS = "workers"
+KEY_SENSOR_WORKERS = "sensor_workers"
+KEY_STATE = "state"
+KEY_ATTRS = "attributes"
+KEY_ATTR_WORKERS = "workers"
 
 QUERY_ACCESS_TOKEN = "api/auth/token/obtain/"
 QUERY_WORKERS = f"api/jobs/"
