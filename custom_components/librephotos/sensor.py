@@ -1,4 +1,4 @@
-"""Main sensor"""
+"""Main sensor."""
 from __future__ import annotations
 
 import logging
@@ -49,7 +49,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 async def async_setup_platform(
     hass: HomeAssistant, config: ConfigType, async_add_entities, discovery_info=None
 ):
-    """Setup sensor entry"""
+    """Set sensor entry up."""
     host = config[CONF_HOST]
     username = config[CONF_USERNAME]
     password = config[CONF_PASSWORD]
@@ -60,7 +60,7 @@ async def async_setup_platform(
     scan_interval = DEFAULT_SCAN_INTERVAL
 
     async def async_update_data():
-        """Async method to update LibrePhotos API data"""
+        """Async method to update LibrePhotos API data."""
         try:
             async with async_timeout.timeout(10):
                 workers = await hass.async_add_executor_job(api.get_workers)
@@ -89,32 +89,38 @@ async def async_setup_platform(
 
 
 class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
-    """Sensor that provides data about LibrePhotos instance"""
+    """Sensor that provides data about LibrePhotos instance."""
 
     def __init__(self, coordinator):
+        """Constructor."""
         super().__init__(coordinator)
         self.attrs = {}
         self._state = 0
 
     @property
     def name(self):
+        """Entity name."""
         return "LibrePhotos Workers"
 
     @property
     def entity_id(self):
+        """Unique entity id."""
         return f"sensor.{DOMAIN}_workers"
 
     @property
     def icon(self) -> str | None:
+        """Entity icon."""
         return "mdi:image-multiple"
 
     @property
     def state(self):
+        """Current entity state, derived from coordinator data."""
         self.attrs = self.coordinator.data[KEY_SENSOR_WORKERS][KEY_ATTRS]
         return self.coordinator.data[KEY_SENSOR_WORKERS][KEY_STATE]
 
     @property
     def device_state_attributes(self):
+        """Device state attributes."""
         return self.attrs
 
 
@@ -137,7 +143,7 @@ Worker = namedtuple(
 
 
 class LibrePhotosApi(object):
-    """API wrapper for LibrePhotos instance"""
+    """API wrapper for LibrePhotos instance."""
 
     _access_token: Optional[str] = None
     _access_token_expiry: Optional[float] = None
@@ -160,12 +166,14 @@ class LibrePhotosApi(object):
             return result.json()["access"]
 
     class Decorators(object):
-        """Decorators"""
+        """Decorators."""
 
         @staticmethod
         def refresh_token(func):
+            """Refresh token if necessary."""
+
             def inner(api: LibrePhotosApi, *args, **kwargs):
-                """Refresh access token"""
+                """Perform access token refresh."""
                 if api._access_token is None or time.time() > api._access_token_expiry:
                     api._access_token = api._get_access_token()
                 return func(api, *args, **kwargs)
@@ -174,6 +182,7 @@ class LibrePhotosApi(object):
 
     @Decorators.refresh_token
     def get_workers(self) -> List[Worker]:
+        """Retrieve workers from LibrePhotos API."""
         params = {"page_size": MAX_WORKERS_COUNT, "page": 1}
         headers = {"Authorization": f"Bearer {self._access_token}"}
         result = requests.get(
