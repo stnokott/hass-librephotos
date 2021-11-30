@@ -149,6 +149,7 @@ class LibrePhotosApi(object):
     _access_token_expiry: Optional[float] = None
 
     def __init__(self, host: str, port: int, username: str, password: str):
+        """Initialize instance."""
         self._username = username
         self._password = password
         self._base_url = f"{host}:{port}/"
