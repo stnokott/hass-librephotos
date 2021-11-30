@@ -1,1 +1,1 @@
-"""Constants"""
+"""Contains constants."""

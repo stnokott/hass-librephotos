@@ -1,4 +1,4 @@
-"""Constant definitions"""
+"""Contains constant definitions."""
 DOMAIN = "librephotos"
 
 KEY_SENSOR_WORKERS = "sensor_workers"

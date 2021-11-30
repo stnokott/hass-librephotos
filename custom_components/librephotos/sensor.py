@@ -92,7 +92,7 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
     """Sensor that provides data about LibrePhotos instance."""
 
     def __init__(self, coordinator):
-        """Constructor."""
+        """Initialize."""
         super().__init__(coordinator)
         self.attrs = {}
         self._state = 0
@@ -104,7 +104,7 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def entity_id(self):
-        """Unique entity id."""
+        """Return unique entity id."""
         return f"sensor.{DOMAIN}_workers"
 
     @property
@@ -114,7 +114,7 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
-        """Current entity state, derived from coordinator data."""
+        """Return current entity state, derived from coordinator data."""
         self.attrs = self.coordinator.data[KEY_SENSOR_WORKERS][KEY_ATTRS]
         return self.coordinator.data[KEY_SENSOR_WORKERS][KEY_STATE]
 
