@@ -1,8 +1,9 @@
 """Constant definitions"""
+DOMAIN = "librephotos"
 
-FRIENDLY_NAME_PREFIX = "LibrePhotos"
-UNIQUE_ID_PREFIX = "librephotos"
 ATTR_WORKERS = "workers"
+
+CONFIG_REFRESH_INTERVAL = "refresh_interval"
 
 QUERY_ACCESS_TOKEN = "api/auth/token/obtain/"
 QUERY_WORKERS = f"api/jobs/"

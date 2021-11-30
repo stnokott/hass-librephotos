@@ -15,7 +15,6 @@ Create a sensor entry in your `configuration.yaml` with these configuration valu
 - `password`: string, password for user *(required)*
 - `port`: int, port of LibrePhotos instance *(optional, default=3000)*
 - `refresh_interval`: int, seconds between each update *(optional, default=60)*
-- `friendly_name`: string, name as displayed in HA *(optional, default=librephotos)*
 
 #### Sample entry:
 ```Configuration.yaml:
@@ -25,5 +24,5 @@ Create a sensor entry in your `configuration.yaml` with these configuration valu
       username: "admin"
       password: "verysecurepassword"
       port: 3001
-      scan_interval: 5
+      refresh_interval: 5
 ```
