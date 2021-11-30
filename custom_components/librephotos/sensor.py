@@ -175,7 +175,9 @@ class LibrePhotosApi(object):
 
             def inner(api: LibrePhotosApi, *args, **kwargs):
                 """Perform access token refresh."""
-                if api._access_token is None or time.time() > api._access_token_expiry:
+                if api._access_token is None or time.time() > (
+                    api._access_token_expiry or 0
+                ):
                     api._access_token = api._get_access_token()
                 return func(api, *args, **kwargs)
 
