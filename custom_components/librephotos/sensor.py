@@ -3,21 +3,22 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from datetime import timedelta, datetime
+from datetime import datetime
 import time
 from typing import Optional, List
 
 import async_timeout
 import requests
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigType
 from homeassistant.const import (
-    CONF_SCAN_INTERVAL,
     CONF_USERNAME,
     CONF_PORT,
     CONF_PASSWORD,
     CONF_HOST,
 )
+import voluptuous as vol
+from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.entity_component import DEFAULT_SCAN_INTERVAL
@@ -34,22 +35,32 @@ from custom_components.librephotos.const.const import (
     QUERY_WORKERS,
     STRPTIME_FORMAT,
 )
+import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+    {
+        vol.Required(CONF_HOST): cv.url,
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
+        vol.Optional(CONF_PORT, default=3000): cv.positive_int,
+    }
+)
+
 
 async def async_setup_platform(
-    hass: HomeAssistant, config: ConfigEntry, async_add_entities, discovery_info=None
+    hass: HomeAssistant, config: ConfigType, async_add_entities, discovery_info=None
 ):
     """Setup sensor entry"""
-    host = config.data[CONF_HOST]
-    username = config.data[CONF_USERNAME]
-    password = config.data[CONF_PASSWORD]
-    port = config.data[CONF_PORT]
+    host = config[CONF_HOST]
+    username = config[CONF_USERNAME]
+    password = config[CONF_PASSWORD]
+    port = config[CONF_PORT]
 
     api = LibrePhotosApi(host, port, username, password)
-    username = config.data[CONF_USERNAME]
-    scan_interval = config.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    username = config[CONF_USERNAME]
+    scan_interval = DEFAULT_SCAN_INTERVAL
 
     async def async_update_data():
         """Async method to update LibrePhotos API data"""
@@ -85,12 +96,12 @@ async def async_setup_platform(
         _LOGGER,
         name=f"LibrePhotos for user {username}",
         update_method=async_update_data,
-        update_interval=timedelta(seconds=scan_interval),
+        update_interval=scan_interval,
     )
 
     await coordinator.async_config_entry_first_refresh()
 
-    async_add_entities(LibrePhotosSensor(coordinator))
+    async_add_entities([LibrePhotosSensor(coordinator)])
 
 
 class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
