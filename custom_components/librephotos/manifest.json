@@ -1,0 +1,11 @@
+{
+  "domain": "librephotos",
+  "name": "LibrePhotos Monitor",
+  "version": "0.0.1",
+  "documentation": "https://github.com/stnokott/hass-librephotos",
+  "dependencies": [],
+  "codeowners": [
+    "@stnokott"
+  ],
+  "requirements": []
+}
