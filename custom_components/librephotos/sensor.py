@@ -6,7 +6,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
-from custom_components.librephotos import DOMAIN, FRIENDLY_NAME_PREFIX
+from custom_components.librephotos import DOMAIN
 
 
 async def async_setup_platform(
@@ -29,7 +29,7 @@ class LibrePhotosSensor(CoordinatorEntity):
 
     @property
     def name(self):
-        return FRIENDLY_NAME_PREFIX + " Workers"
+        return "LibrePhotos Workers"
 
     @property
     def entity_id(self):
