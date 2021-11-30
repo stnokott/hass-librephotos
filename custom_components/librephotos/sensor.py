@@ -111,6 +111,10 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
         return f"sensor.{DOMAIN}_workers"
 
     @property
+    def icon(self) -> str | None:
+        return "mdi:image-multiple"
+
+    @property
     def state(self):
         self.attrs = self.coordinator.data[KEY_SENSOR_WORKERS][KEY_ATTRS]
         return self.coordinator.data[KEY_SENSOR_WORKERS][KEY_STATE]
