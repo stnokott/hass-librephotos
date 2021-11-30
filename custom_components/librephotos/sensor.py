@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_platform(
-    hass: HomeAssistant, config: ConfigEntry, async_add_entities
+    hass: HomeAssistant, config: ConfigEntry, async_add_entities, discovery_info=None
 ):
     """Setup sensor entry"""
     api = hass.data[DOMAIN][config.entry_id]

@@ -54,7 +54,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigEntry):
     return True
 
 
-async def async_setup_platform(hass: HomeAssistant, config: ConfigEntry) -> bool:
+async def async_setup_platform(
+    hass: HomeAssistant, config: ConfigEntry, discovery_info=None
+) -> bool:
     """Setup platform"""
     _LOGGER.debug(f"Setting up platform entry: {config.data}")
 
