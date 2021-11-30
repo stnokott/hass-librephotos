@@ -8,10 +8,9 @@ import time
 
 import logging
 from collections import namedtuple
-from datetime import timedelta, datetime
+from datetime import datetime
 from typing import Optional, List
 
-import async_timeout
 import requests
 import voluptuous as vol
 
@@ -22,15 +21,9 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_PORT,
-    CONF_SCAN_INTERVAL,
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers.entity_component import DEFAULT_SCAN_INTERVAL
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-)
 
 from custom_components.librephotos.const.const import (
     MAX_WORKERS_COUNT,
@@ -61,23 +54,23 @@ async def async_setup(hass: HomeAssistant, config: ConfigEntry):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_platform(hass: HomeAssistant, config: ConfigEntry) -> bool:
     """Setup platform"""
-    _LOGGER.debug(f"Setting up platform entry: {entry.data}")
+    _LOGGER.debug(f"Setting up platform entry: {config.data}")
 
-    host = entry.data[CONF_HOST]
-    username = entry.data[CONF_USERNAME]
-    password = entry.data[CONF_PASSWORD]
-    port = entry.data[CONF_PORT]
+    host = config.data[CONF_HOST]
+    username = config.data[CONF_USERNAME]
+    password = config.data[CONF_PASSWORD]
+    port = config.data[CONF_PORT]
 
     api = LibrePhotosApi(host, port, username, password)
 
     librephotos_hass_data = hass.data.setdefault(DOMAIN, {})
-    librephotos_hass_data[DOMAIN][entry.entry_id] = api
+    librephotos_hass_data[DOMAIN][config.entry_id] = api
 
     for component in PLATFORMS:
         hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, component)
+            hass.config_entries.async_forward_entry_setup(config, component)
         )
 
     return True

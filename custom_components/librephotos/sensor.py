@@ -19,13 +19,13 @@ from custom_components.librephotos import DOMAIN, ATTR_WORKERS
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+async def async_setup_platform(
+    hass: HomeAssistant, config: ConfigEntry, async_add_entities
 ):
     """Setup sensor entry"""
-    api = hass.data[DOMAIN][entry.entry_id]
-    username = entry.data[CONF_USERNAME]
-    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    api = hass.data[DOMAIN][config.entry_id]
+    username = config.data[CONF_USERNAME]
+    scan_interval = config.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     async def async_update_data():
         """Async method to update LibrePhotos API data"""
