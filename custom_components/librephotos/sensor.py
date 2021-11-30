@@ -5,20 +5,15 @@ import logging
 import time
 from collections import namedtuple
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 
 import async_timeout
 import homeassistant.helpers.config_validation as cv
 import requests
-from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.components.sensor import SensorEntity
+import voluptuous as vol
+from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
 from homeassistant.config_entries import ConfigType
-from homeassistant.const import (
-    CONF_USERNAME,
-    CONF_PORT,
-    CONF_PASSWORD,
-    CONF_HOST,
-)
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.entity_component import DEFAULT_SCAN_INTERVAL
@@ -26,18 +21,17 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
-import voluptuous as vol
 
 from custom_components.librephotos.const.const import (
     DOMAIN,
     KEY_ATTR_WORKERS,
-    QUERY_ACCESS_TOKEN,
-    MAX_WORKERS_COUNT,
-    QUERY_WORKERS,
-    STRPTIME_FORMAT,
+    KEY_ATTRS,
     KEY_SENSOR_WORKERS,
     KEY_STATE,
-    KEY_ATTRS,
+    MAX_WORKERS_COUNT,
+    QUERY_ACCESS_TOKEN,
+    QUERY_WORKERS,
+    STRPTIME_FORMAT,
 )
 
 _LOGGER = logging.getLogger(__name__)
