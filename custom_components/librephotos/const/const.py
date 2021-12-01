@@ -10,6 +10,7 @@ KEY_SENSOR_STATS = "sensor_stats"
 KEY_ATTR_STATS = "stats"
 
 QUERY_ACCESS_TOKEN = "api/auth/token/obtain/"
+QUERY_REFRESH_TOKEN = "api/auth/token/refresh/"
 QUERY_WORKERS = "api/jobs/"
 QUERY_STATS = "api/stats"
 

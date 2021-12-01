@@ -35,6 +35,7 @@ from custom_components.librephotos.const.const import (
     QUERY_STATS,
     QUERY_WORKERS,
     STRPTIME_FORMAT,
+    QUERY_REFRESH_TOKEN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -208,6 +209,7 @@ class LibrePhotosApi(object):
     """API wrapper for LibrePhotos instance."""
 
     _access_token: Optional[str] = None
+    _refresh_token: Optional[str] = None
     _access_token_expiry: Optional[float] = None
 
     def __init__(self, host: str, port: int, username: str, password: str):
@@ -216,7 +218,7 @@ class LibrePhotosApi(object):
         self._password = password
         self._base_url = f"{host}:{port}/"
 
-    def _get_access_token(self) -> str:
+    def _get_access_token(self):
         data = {"username": self._username, "password": self._password}
         result = requests.post(self._base_url + QUERY_ACCESS_TOKEN, data=data)
         try:
@@ -224,9 +226,20 @@ class LibrePhotosApi(object):
         except requests.HTTPError as e:
             raise ValueError(f"Login unsuccessful: {e}")
         else:
-            self._access_token_expiry = time.time() + 3500
+            _LOGGER.debug("Token retrieved")
+            self._access_token = result.json()["access"]
+            self._refresh_token = result.json()["refresh"]
+
+    def _refresh_access_token(self):
+        data = {"refresh": self._refresh_token}
+        result = requests.post(self._base_url + QUERY_REFRESH_TOKEN, data=data)
+        try:
+            result.raise_for_status()
+        except requests.HTTPError as e:
+            raise ValueError(f"Login unsuccessful: {e}")
+        else:
             _LOGGER.debug("Token refreshed")
-            return result.json()["access"]
+            self._access_token = result.json()["access"]
 
     class Decorators(object):
         """Decorators."""
@@ -237,11 +250,16 @@ class LibrePhotosApi(object):
 
             def inner(api: LibrePhotosApi, *args, **kwargs):
                 """Perform access token refresh."""
-                if api._access_token is None or time.time() > (
-                    api._access_token_expiry or 0
-                ):
-                    api._access_token = api._get_access_token()
-                return func(api, *args, **kwargs)
+                if api._access_token is None or api._refresh_token is None:
+                    api._get_access_token()
+                elif time.time() > (api._access_token_expiry or 0):
+                    api._refresh_access_token()
+                api._access_token_expiry = time.time() + 600
+                try:
+                    return func(api, *args, **kwargs)
+                except ValueError:
+                    api._get_access_token()
+                    return func(api, *args, **kwargs)
 
             return inner
 
@@ -255,35 +273,44 @@ class LibrePhotosApi(object):
         )
         result_json = result.json()
         workers = []
-        for i in range(min(result_json["count"], MAX_WORKERS_COUNT)):
-            worker = result_json["results"][i]
-            is_started = worker["started_at"] != ""
-            is_finished = worker["finished"]
-            is_failed = bool(worker["failed"])
-            workers.append(
-                Worker(
-                    id=worker["job_id"],
-                    job_type=worker["job_type_str"],
-                    queued_by=worker["started_by"]["username"],
-                    queued_at=datetime.strptime(worker["queued_at"], STRPTIME_FORMAT),
-                    started_at=datetime.strptime(worker["started_at"], STRPTIME_FORMAT)
-                    if is_started
-                    else None,
-                    finished_at=datetime.strptime(
-                        worker["finished_at"], STRPTIME_FORMAT
+        try:
+            for i in range(min(result_json["count"], MAX_WORKERS_COUNT)):
+                worker = result_json["results"][i]
+                is_started = worker["started_at"] != ""
+                is_finished = worker["finished"]
+                is_failed = bool(worker["failed"])
+                workers.append(
+                    Worker(
+                        id=worker["job_id"],
+                        job_type=worker["job_type_str"],
+                        queued_by=worker["started_by"]["username"],
+                        queued_at=datetime.strptime(
+                            worker["queued_at"], STRPTIME_FORMAT
+                        ),
+                        started_at=datetime.strptime(
+                            worker["started_at"], STRPTIME_FORMAT
+                        )
+                        if is_started
+                        else None,
+                        finished_at=datetime.strptime(
+                            worker["finished_at"], STRPTIME_FORMAT
+                        )
+                        if is_finished
+                        else None,
+                        is_started=is_started,
+                        is_finished=is_finished,
+                        is_failed=is_failed,
+                        progress_current=int(worker["result"]["progress"]["current"])
+                        if is_started
+                        else None,
+                        progress_target=int(worker["result"]["progress"]["target"])
+                        if is_started
+                        else None,
                     )
-                    if is_finished
-                    else None,
-                    is_started=is_started,
-                    is_finished=is_finished,
-                    is_failed=is_failed,
-                    progress_current=int(worker["result"]["progress"]["current"])
-                    if is_started
-                    else None,
-                    progress_target=int(worker["result"]["progress"]["target"])
-                    if is_started
-                    else None,
                 )
+        except KeyError:
+            raise ValueError(
+                f"Failed parsing server response for workers: {result_json}"
             )
         _LOGGER.debug(f"Retreived data for {len(workers)} workers")
         return workers
