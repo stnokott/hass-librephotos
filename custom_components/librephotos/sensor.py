@@ -93,7 +93,9 @@ async def async_setup_platform(
 
     await coordinator.async_config_entry_first_refresh()
 
-    async_add_entities([LibrePhotosWorkersSensor(coordinator)])
+    async_add_entities(
+        [LibrePhotosWorkersSensor(coordinator), LibrePhotosStatsSensor(coordinator)]
+    )
 
 
 class LibrePhotosWorkersSensor(CoordinatorEntity, SensorEntity):
