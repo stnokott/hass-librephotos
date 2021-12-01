@@ -110,7 +110,7 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
     @property
     def icon(self) -> str | None:
         """Entity icon."""
-        return "mdi:image-multiple"
+        return "mdi:animation"
 
     @property
     def state(self):
