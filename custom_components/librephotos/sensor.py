@@ -32,10 +32,10 @@ from custom_components.librephotos.const.const import (
     KEY_STATE,
     MAX_WORKERS_COUNT,
     QUERY_ACCESS_TOKEN,
+    QUERY_REFRESH_TOKEN,
     QUERY_STATS,
     QUERY_WORKERS,
     STRPTIME_FORMAT,
-    QUERY_REFRESH_TOKEN,
 )
 
 _LOGGER = logging.getLogger(__name__)
