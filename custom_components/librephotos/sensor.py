@@ -24,12 +24,15 @@ from homeassistant.helpers.update_coordinator import (
 
 from custom_components.librephotos.const.const import (
     DOMAIN,
+    KEY_ATTR_STATS,
     KEY_ATTR_WORKERS,
     KEY_ATTRS,
+    KEY_SENSOR_STATS,
     KEY_SENSOR_WORKERS,
     KEY_STATE,
     MAX_WORKERS_COUNT,
     QUERY_ACCESS_TOKEN,
+    QUERY_STATS,
     QUERY_WORKERS,
     STRPTIME_FORMAT,
 )
@@ -64,13 +67,18 @@ async def async_setup_platform(
         try:
             async with async_timeout.timeout(10):
                 workers = await hass.async_add_executor_job(api.get_workers)
+                statistics = await hass.async_add_executor_job(api.get_statistics)
                 return {
                     KEY_SENSOR_WORKERS: {
                         KEY_STATE: len(workers),
                         KEY_ATTRS: {
                             KEY_ATTR_WORKERS: [worker._asdict() for worker in workers]
                         },
-                    }
+                    },
+                    KEY_SENSOR_STATS: {
+                        KEY_STATE: statistics.num_photos,
+                        KEY_ATTRS: {KEY_ATTR_STATS: statistics._asdict()},
+                    },
                 }
         except ValueError as e:
             raise ConfigEntryAuthFailed from e
@@ -85,11 +93,11 @@ async def async_setup_platform(
 
     await coordinator.async_config_entry_first_refresh()
 
-    async_add_entities([LibrePhotosSensor(coordinator)])
+    async_add_entities([LibrePhotosWorkersSensor(coordinator)])
 
 
-class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
-    """Sensor that provides data about LibrePhotos instance."""
+class LibrePhotosWorkersSensor(CoordinatorEntity, SensorEntity):
+    """Sensor that provides information about LibrePhotos workers."""
 
     def __init__(self, coordinator):
         """Initialize."""
@@ -124,6 +132,42 @@ class LibrePhotosSensor(CoordinatorEntity, SensorEntity):
         return self.attrs
 
 
+class LibrePhotosStatsSensor(CoordinatorEntity, SensorEntity):
+    """Sensor that provides statistics about LibrePhotos instance."""
+
+    def __init__(self, coordinator):
+        """Initialize."""
+        super().__init__(coordinator)
+        self.attrs = {}
+        self._state = 0
+
+    @property
+    def name(self):
+        """Entity name."""
+        return "LibrePhotos Statistics"
+
+    @property
+    def entity_id(self):
+        """Return unique entity id."""
+        return f"sensor.{DOMAIN}_statistics"
+
+    @property
+    def icon(self) -> str | None:
+        """Entity icon."""
+        return "mdi:chart-box"
+
+    @property
+    def state(self):
+        """Return current entity state, derived from coordinator data."""
+        self.attrs = self.coordinator.data[KEY_SENSOR_STATS][KEY_ATTRS]
+        return self.coordinator.data[KEY_SENSOR_STATS][KEY_STATE]
+
+    @property
+    def device_state_attributes(self):
+        """Device state attributes."""
+        return self.attrs
+
+
 Worker = namedtuple(
     "Worker",
     [
@@ -138,6 +182,22 @@ Worker = namedtuple(
         "is_failed",
         "progress_current",
         "progress_target",
+    ],
+)
+
+Statistics = namedtuple(
+    "Statistics",
+    [
+        "num_photos",
+        "num_missing_photos",
+        "num_people",
+        "num_faces",
+        "num_unknown_faces",
+        "num_labeled_faces",
+        "num_inferred_faces",
+        "num_albumauto",
+        "num_albumdate",
+        "num_albumuser",
     ],
 )
 
@@ -225,3 +285,13 @@ class LibrePhotosApi(object):
             )
         _LOGGER.debug(f"Retreived data for {len(workers)} workers")
         return workers
+
+    @Decorators.refresh_token
+    def get_statistics(self) -> Statistics:
+        """Retrieve statistics from LibrePhotos API."""
+        headers = {"Authorization": f"Bearer {self._access_token}"}
+        result = requests.get(self._base_url + QUERY_STATS, headers=headers)
+        result_json = result.json()
+        statistics = Statistics(**{k: int(v) for k, v in result_json.items()})
+        _LOGGER.debug("Retreived statistics")
+        return statistics
